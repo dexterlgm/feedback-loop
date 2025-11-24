@@ -1,0 +1,7 @@
+{
+	"editorconfig": true,
+	"jsxSingleQuote": false,
+	"singleQuote": false,
+	"semi": true,
+	"trailingComma": "es5"
+}
