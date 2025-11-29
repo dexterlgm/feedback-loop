@@ -30,7 +30,7 @@ export function AppNavbar() {
 						FB-Loop
 					</Navbar.Brand>
 
-					<Nav className="ms-auto d-flex align-items-center gap-2">
+					<Nav className="ms-auto d-flex flex-row align-items-center gap-2">
 						{!user && (
 							<Button
 								variant="outline-primary"
