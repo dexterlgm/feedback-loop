@@ -70,3 +70,16 @@ export interface UserMedal {
 	medal_id: number;
 	earned_at: string;
 }
+
+export type NotificationType = "comment_on_post";
+
+export interface Notification {
+	id: string;
+	user_id: string; // recipient
+	actor_id: string; // who did the action
+	type: NotificationType;
+	post_id: string | null;
+	comment_id: string | null;
+	is_read: boolean;
+	created_at: string;
+}
