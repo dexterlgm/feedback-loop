@@ -13,14 +13,14 @@ export function AppNavbar() {
 	const signOutMutation = useSignOutMutation();
 	const navigate = useNavigate();
 
-	async function handleLogout() {
+	const handleLogout = async () => {
 		try {
 			await signOutMutation.mutateAsync();
 			navigate("/");
 		} catch (err) {
 			console.error(err);
 		}
-	}
+	};
 
 	return (
 		<>
