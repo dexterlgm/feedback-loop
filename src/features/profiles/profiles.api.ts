@@ -1,5 +1,5 @@
 import { supabase } from "../../utils/supabaseClient";
-import type { Profile } from "../../types";
+import type { Profile, Medal } from "../../types";
 
 export interface CreateProfileParams {
 	id: string;
@@ -99,4 +99,27 @@ export async function searchProfilesByHandlePrefix(
 
 	if (error) throw error;
 	return (data ?? []) as Profile[];
+}
+
+// Get all medals (with duplicates) for a given user.
+export async function getMedalsForUser(userId: string): Promise<Medal[]> {
+	const { data, error } = await supabase
+		.from("user_medals")
+		.select(
+			`
+      medal:medal_id (
+        id,
+        code,
+        name,
+        description,
+        icon,
+        threshold
+      )
+    `
+		)
+		.eq("user_id", userId);
+
+	if (error) throw error;
+
+	return (data ?? []).map((row: any) => row.medal as Medal);
 }

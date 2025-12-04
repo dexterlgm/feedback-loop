@@ -1,10 +1,11 @@
 // src/features/profiles/profiles.queries.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Profile } from "../../types";
+import type { Profile, Medal } from "../../types";
 import {
 	getProfileByHandle,
 	getProfileById,
 	updateProfile,
+	getMedalsForUser,
 	type UpdateProfileParams,
 } from "./profiles.api";
 
@@ -38,5 +39,13 @@ export function useUpdateProfileMutation() {
 				queryKey: ["profileByHandle", updatedProfile.handle],
 			});
 		},
+	});
+}
+
+export function useMedalsForUser(userId?: string) {
+	return useQuery<Medal[]>({
+		queryKey: ["userMedals", userId],
+		enabled: !!userId,
+		queryFn: () => getMedalsForUser(userId!),
 	});
 }
