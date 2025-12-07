@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import {
 	useProfileByHandle,
 	useMedalsForUser,
@@ -6,6 +6,7 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import type { Medal, Profile } from "../types";
 import { MedalIcon } from "../components/common/MedalIcon";
+import { Button } from "react-bootstrap";
 
 const ProfilePage = () => {
 	const { handle } = useParams();
@@ -80,6 +81,18 @@ const ProfilePage = () => {
 				<div>
 					<div className="d-md-none mb-4">
 						<ProfileInfo profile={profile} medals={medals ?? []} />
+						{canEdit && (
+							<div className="mt-2">
+								<Button
+									as={Link as any}
+									to={`/u/${profile.handle}/edit`}
+									variant="outline-secondary"
+									size="sm"
+								>
+									Edit profile
+								</Button>
+							</div>
+						)}
 					</div>
 
 					<div className="row">
@@ -89,6 +102,18 @@ const ProfilePage = () => {
 								profile={profile}
 								medals={medals ?? []}
 							/>
+							{canEdit && (
+								<div className="mt-2">
+									<Button
+										as={Link as any}
+										to={`/u/${profile.handle}/edit`}
+										variant="outline-secondary"
+										size="sm"
+									>
+										Edit profile
+									</Button>
+								</div>
+							)}
 						</div>
 					</div>
 				</div>
