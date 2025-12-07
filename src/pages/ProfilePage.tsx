@@ -7,6 +7,7 @@ import { useAuth } from "../hooks/useAuth";
 import type { Medal, Profile } from "../types";
 import { MedalIcon } from "../components/common/MedalIcon";
 import { Button } from "react-bootstrap";
+import { UserAvatar } from "../components/common/UserAvatar";
 
 const ProfilePage = () => {
 	const { handle } = useParams();
@@ -49,8 +50,20 @@ const ProfilePage = () => {
 	const ProfileInfo = ({ profile, medals }: ProfileInfoProps) => {
 		return (
 			<div className="p-3 border rounded">
-				<h3>{profile.display_name ?? profile.handle}</h3>
-				<p className="text-muted">@{profile.handle}</p>
+				<div className="d-flex align-items-center mb-3">
+					<UserAvatar
+						src={profile.avatar_url}
+						alt={profile.handle}
+						size={64}
+						className="me-3"
+					/>
+					<div>
+						<h3 className="mb-0">
+							{profile.display_name ?? profile.handle}
+						</h3>
+						<p className="text-muted mb-0">@{profile.handle}</p>
+					</div>
+				</div>
 
 				{medals.length > 0 && (
 					<div className="mt-3">
