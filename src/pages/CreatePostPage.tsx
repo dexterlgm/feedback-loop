@@ -35,6 +35,24 @@ const CreatePostPage = () => {
 	const [images, setImages] = useState<ImageItem[]>([]);
 	const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
+	const [tagSearch, setTagSearch] = useState("");
+	const [showAllTags, setShowAllTags] = useState(false);
+
+	const MAX_VISIBLE_TAGS = 12;
+
+	const normalizedSearch = tagSearch.trim().toLowerCase();
+
+	let filteredTags = tags ?? [];
+
+	if (normalizedSearch) {
+		filteredTags = filteredTags.filter((tag) =>
+			tag.name.toLowerCase().includes(normalizedSearch)
+		);
+	}
+
+	const visibleTags = showAllTags
+		? filteredTags
+		: filteredTags.slice(0, MAX_VISIBLE_TAGS);
 
 	if (!user) {
 		return (
@@ -222,6 +240,17 @@ const CreatePostPage = () => {
 						</div>
 					)}
 
+					<Form.Control
+						type="text"
+						placeholder="Search tags..."
+						className="mb-2"
+						value={tagSearch}
+						onChange={(e) => {
+							setTagSearch(e.target.value);
+							setShowAllTags(false);
+						}}
+					/>
+
 					<div className="d-flex flex-wrap gap-2">
 						{tagsLoading && (
 							<span className="text-muted small">
@@ -230,7 +259,7 @@ const CreatePostPage = () => {
 						)}
 
 						{!tagsLoading &&
-							tags?.map((tag) => {
+							visibleTags.map((tag) => {
 								const selected = selectedTagIds.includes(
 									tag.id
 								);
@@ -251,6 +280,16 @@ const CreatePostPage = () => {
 								);
 							})}
 					</div>
+
+					{!tagsLoading && filteredTags.length > MAX_VISIBLE_TAGS && (
+						<button
+							type="button"
+							className="btn btn-link btn-sm mt-1 p-0"
+							onClick={() => setShowAllTags((prev) => !prev)}
+						>
+							{showAllTags ? "Show fewer tags" : "Show all tags"}
+						</button>
+					)}
 				</Form.Group>
 
 				<Button
