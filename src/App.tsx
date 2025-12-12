@@ -6,6 +6,7 @@ import CreatePostPage from "./pages/CreatePostPage";
 import ProfilePage from "./pages/ProfilePage";
 import EditProfilePage from "./pages/EditProfilePage";
 import AppFooter from "./components/AppFooter";
+import PostPage from "./pages/PostPage";
 
 function App() {
 	return (
@@ -21,6 +22,7 @@ function App() {
 							path="/u/:handle/edit"
 							element={<EditProfilePage />}
 						/>
+						<Route path="/posts/:id" element={<PostPage />} />
 					</Routes>
 				</main>
 				<AppFooter />
