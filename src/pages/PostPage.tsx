@@ -3,11 +3,35 @@ import { useParams, Link } from "react-router-dom";
 import { Container, Row, Col, Spinner, Alert, Badge } from "react-bootstrap";
 import { usePostDetail } from "../features/posts/posts.queries";
 import { UserAvatar } from "../components/common/UserAvatar";
+import { useForm } from "react-hook-form";
+import { useAuth } from "../hooks/useAuth";
+import {
+	useCommentsForPost,
+	useCreateCommentMutation,
+	useDeleteCommentMutation,
+	useSetCommentReactionMutation,
+} from "../features/comments/comments.queries";
+import Comment from "../components/Comment";
 
 const PostPage = () => {
 	const { id } = useParams<{ id: string }>();
 
 	const { data: postDetail, isLoading, error } = usePostDetail(id);
+	const { user, profile: currentProfile } = useAuth();
+
+	const { data: comments, isLoading: commentsLoading } =
+		useCommentsForPost(id);
+
+	const createCommentMutation = useCreateCommentMutation(id!);
+	const deleteCommentMutation = useDeleteCommentMutation(id!);
+	const setReactionMutation = useSetCommentReactionMutation(id!);
+
+	const {
+		register,
+		handleSubmit,
+		reset,
+		formState: { errors, isSubmitting },
+	} = useForm<{ body: string }>();
 
 	const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
@@ -35,6 +59,29 @@ const PostPage = () => {
 		);
 	}
 
+	const canDeleteComment = (authorId: string) => {
+		if (!user) return false;
+		if (currentProfile?.is_admin) return true;
+		return user.id === authorId;
+	};
+
+	const handleDeleteComment = (commentId: string) => {
+		if (!confirm("Delete this comment?")) return;
+		deleteCommentMutation.mutate({ commentId });
+	};
+
+	const handleReact = (commentId: string, reaction: 1 | -1 | null) => {
+		setReactionMutation.mutate({ commentId, reaction });
+	};
+
+	const onSubmitComment = async (values: { body: string }) => {
+		const text = values.body.trim();
+		if (!text) return;
+
+		await createCommentMutation.mutateAsync({ body: text });
+		reset();
+	};
+
 	const { post, author, images, tags } = postDetail;
 
 	const mainImage =
@@ -43,7 +90,7 @@ const PostPage = () => {
 	const createdAt = post.created_at ? new Date(post.created_at) : null;
 
 	return (
-		<Container className="py-4">
+		<Container className="pb-4 pt-1">
 			<Row className="mb-3">
 				<Col>
 					<h2 className="mb-2">{post.title}</h2>
@@ -146,8 +193,71 @@ const PostPage = () => {
 						</div>
 					)}
 
-					{/* TODO: ADD COMMENTS */}
-					<div className="mt-4 text-muted small">Comments</div>
+					<div className="mt-4 text-muted small">
+						<hr />
+
+						<h5>Comments</h5>
+
+						{!user && (
+							<p className="text-muted">
+								Log in to leave a comment.
+							</p>
+						)}
+
+						{user && (
+							<form
+								onSubmit={handleSubmit(onSubmitComment)}
+								className="mb-3"
+							>
+								<textarea
+									className="form-control mb-2"
+									rows={3}
+									placeholder="Write a comment..."
+									{...register("body", {
+										required: "Comment cannot be empty",
+										maxLength: {
+											value: 500,
+											message: "Max 500 characters",
+										},
+									})}
+								/>
+								{errors.body && (
+									<div className="text-danger small">
+										{errors.body.message}
+									</div>
+								)}
+								<button
+									type="submit"
+									className="btn btn-primary btn-sm"
+									disabled={isSubmitting}
+								>
+									Post comment
+								</button>
+							</form>
+						)}
+
+						{commentsLoading && (
+							<p className="text-muted">Loading comments…</p>
+						)}
+
+						{!commentsLoading && comments?.length === 0 && (
+							<p className="text-muted">
+								No comments yet. Be the first to comment.
+							</p>
+						)}
+
+						{comments?.map((c) => (
+							<Comment
+								key={c.comment.id}
+								item={c}
+								canDelete={canDeleteComment(
+									c.comment.author_id
+								)}
+								onDelete={handleDeleteComment}
+								onReact={handleReact}
+							/>
+						))}
+					</div>
 				</Col>
 			</Row>
 		</Container>
