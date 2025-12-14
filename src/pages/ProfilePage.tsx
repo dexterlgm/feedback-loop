@@ -26,6 +26,7 @@ import { MedalIcon } from "../components/common/MedalIcon";
 import { Button } from "react-bootstrap";
 import { UserAvatar } from "../components/common/UserAvatar";
 import type { JSX } from "react";
+import { groupMedals } from "../utils/medals";
 
 const ProfilePage = () => {
 	const { handle } = useParams();
@@ -49,22 +50,6 @@ const ProfilePage = () => {
 		medals: Medal[];
 		socialLinks: string[];
 	}
-
-	const groupMedals = (medals: Medal[]) => {
-		return Object.values(
-			medals.reduce<Record<string, { medal: Medal; count: number }>>(
-				(acc, medal) => {
-					const key = String(medal.id);
-					if (!acc[key]) {
-						acc[key] = { medal, count: 0 };
-					}
-					acc[key].count += 1;
-					return acc;
-				},
-				{}
-			)
-		);
-	};
 
 	const ProfileInfo = ({
 		profile,
