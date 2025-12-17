@@ -1,17 +1,154 @@
 import { supabase } from "../../utils/supabaseClient";
-import type { PostDetail, PostStats } from "../../types";
+import type {
+	PostFilter,
+	PostFeedItem,
+	PostDetail,
+	PostStats,
+} from "../../types";
 import type { Post, Profile, PostImage, Tag } from "../../types";
 import { uploadPostImage } from "../../services/storage";
 
 export interface CreatePostParams {
 	title: string;
-	body?: string;
+	body: string | null;
 	tagIds?: number[];
 	files: File[];
 }
 
 export interface DeletePostParams {
 	postId: string;
+}
+
+export interface FetchPostsParams {
+	filter: PostFilter;
+	limit: number;
+	offset: number;
+}
+
+// Stopping Supabase from returning joined tables as an object
+function one<T>(value: T | T[] | null | undefined): T | null {
+	if (!value) return null;
+	return Array.isArray(value) ? value[0] ?? null : value;
+}
+
+type FeedRow = {
+	id: string;
+	author_id: string;
+	title: string;
+	body: string | null;
+	explore_score: number | null;
+	is_deleted: boolean;
+	created_at: string;
+	updated_at: string | null;
+	comment_count: number | null;
+
+	author:
+		| {
+				id: string;
+				handle: string;
+				display_name: string | null;
+				avatar_url: string | null;
+		  }
+		| {
+				id: string;
+				handle: string;
+				display_name: string | null;
+				avatar_url: string | null;
+		  }[];
+
+	images: PostImage[] | null;
+
+	post_tags: Array<{
+		tag: { id: number; name: string } | { id: number; name: string }[];
+	}> | null;
+};
+
+type DetailRow = {
+	id: string;
+	author_id: string;
+	title: string;
+	body: string | null;
+	explore_score: number | null;
+	is_deleted: boolean;
+	created_at: string;
+	updated_at: string | null;
+	comment_count: number | null;
+
+	author:
+		| {
+				id: string;
+				handle: string;
+				display_name: string | null;
+				avatar_url: string | null;
+				bio: string | null;
+		  }
+		| {
+				id: string;
+				handle: string;
+				display_name: string | null;
+				avatar_url: string | null;
+				bio: string | null;
+		  }[];
+
+	images: PostImage[] | null;
+
+	post_tags: Array<{
+		tag: { id: number; name: string } | { id: number; name: string }[];
+	}> | null;
+};
+
+function mapTags(
+	post_tags: FeedRow["post_tags"] | DetailRow["post_tags"]
+): Tag[] {
+	const tags: Tag[] = [];
+
+	if (!post_tags) return tags;
+
+	for (const pt of post_tags) {
+		const tag = one(pt.tag);
+		if (!tag) continue;
+
+		tags.push({ id: tag.id, name: tag.name });
+	}
+
+	return tags;
+}
+
+function toPost(row: FeedRow | DetailRow): Post {
+	return {
+		id: row.id,
+		author_id: row.author_id,
+		title: row.title,
+		body: row.body,
+		explore_score: row.explore_score,
+		is_deleted: row.is_deleted,
+		created_at: row.created_at,
+		updated_at: row.updated_at,
+	};
+}
+
+function toStats(row: FeedRow | DetailRow): PostStats {
+	return {
+		commentCount: row.comment_count ?? 0,
+		totalCommentLikes: 0,
+	};
+}
+
+function mapFeedRow(row: FeedRow): PostFeedItem {
+	const author = one(row.author);
+
+	const safeAuthor: Pick<
+		Profile,
+		"id" | "handle" | "display_name" | "avatar_url"
+	> = author ?? { id: "", handle: "", display_name: null, avatar_url: null };
+
+	return {
+		post: toPost(row),
+		author: safeAuthor,
+		images: row.images ?? [],
+		tags: mapTags(row.post_tags),
+		stats: toStats(row),
+	};
 }
 
 // Create a post, upload images, and attach tags.
@@ -27,7 +164,6 @@ export async function createPostWithImages(
 	if (userError) throw userError;
 	if (!user) throw new Error("Not logged in");
 
-	// Create post
 	const { data: postData, error: postError } = await supabase
 		.from("posts")
 		.insert({
@@ -36,16 +172,15 @@ export async function createPostWithImages(
 			body: body ?? null,
 		})
 		.select("*")
-		.single();
+		.single<Post>();
 
 	if (postError || !postData) {
 		throw postError ?? new Error("Failed to create post");
 	}
 
-	const post = postData as Post;
+	const post = postData;
 	const postId = post.id;
 
-	// Upload images and insert post_images rows
 	const uploadedUrls: string[] = [];
 
 	for (let i = 0; i < files.length; i++) {
@@ -62,12 +197,12 @@ export async function createPostWithImages(
 		if (imgError) throw imgError;
 	}
 
-	// Add tags
 	if (tagIds && tagIds.length > 0) {
 		const postTags = tagIds.map((tagId) => ({
 			post_id: postId,
 			tag_id: tagId,
 		}));
+
 		const { error: tagsError } = await supabase
 			.from("post_tags")
 			.insert(postTags);
@@ -76,7 +211,7 @@ export async function createPostWithImages(
 
 	try {
 		await supabase.rpc("update_explore_score", { p_post_id: postId });
-	} catch (err) {
+	} catch (err: unknown) {
 		console.warn("update_explore_score failed (optional):", err);
 	}
 
@@ -93,10 +228,15 @@ export async function deletePost({ postId }: DeletePostParams): Promise<void> {
 	if (error) throw error;
 }
 
-// Fetch a single post
-export async function fetchPostDetail(postId: string): Promise<PostDetail> {
-	const { data: postRow, error: postError } = await supabase
-		.from("posts")
+// Fetch several posts
+export async function fetchPostsFeed(
+	params: FetchPostsParams
+): Promise<PostFeedItem[]> {
+	const { filter, limit, offset } = params;
+	const { sort, searchQuery, tags } = filter;
+
+	let query = supabase
+		.from("posts_with_counts")
 		.select(
 			`
       id,
@@ -107,6 +247,107 @@ export async function fetchPostDetail(postId: string): Promise<PostDetail> {
       is_deleted,
       created_at,
       updated_at,
+	  comment_count,
+      author:author_id (
+        id,
+        handle,
+        display_name,
+        avatar_url
+      ),
+      images:post_images (*),
+      post_tags (
+        tag:tag_id (
+          id,
+          name
+        )
+      )
+    `
+		)
+		.eq("is_deleted", false);
+
+	if (searchQuery && searchQuery.trim() !== "") {
+		query = query.or(
+			`title.ilike.%${searchQuery}%,body.ilike.%${searchQuery}%`
+		);
+	}
+
+	if (tags && tags.length > 0) {
+		query = query.in("post_tags.tag.name", tags);
+	}
+
+	if (sort === "newest") {
+		query = query.order("created_at", { ascending: false });
+	} else {
+		query = query.order("explore_score", { ascending: false });
+	}
+
+	const { data, error } = await query.range(offset, offset + limit - 1);
+	if (error) throw error;
+
+	const rows = (data ?? []) as unknown as FeedRow[];
+	return rows.map(mapFeedRow);
+}
+
+export async function fetchPostsByUser(
+	userId: string,
+	limit: number,
+	offset: number
+): Promise<PostFeedItem[]> {
+	let query = supabase
+		.from("posts_with_counts")
+		.select(
+			`
+      id,
+      author_id,
+      title,
+      body,
+      explore_score,
+      is_deleted,
+      created_at,
+      updated_at,
+	  comment_count,
+      author:author_id (
+        id,
+        handle,
+        display_name,
+        avatar_url
+      ),
+      images:post_images (*),
+      post_tags (
+        tag:tag_id (
+          id,
+          name
+        )
+      )
+    `
+		)
+		.eq("is_deleted", false)
+		.eq("author_id", userId)
+		.order("created_at", { ascending: false })
+		.range(offset, offset + limit - 1);
+
+	const { data, error } = await query;
+	if (error) throw error;
+
+	const rows = (data ?? []) as unknown as FeedRow[];
+	return rows.map(mapFeedRow);
+}
+
+// Fetch a single post
+export async function fetchPostDetail(postId: string): Promise<PostDetail> {
+	const { data, error } = await supabase
+		.from("posts_with_counts")
+		.select(
+			`
+      id,
+      author_id,
+      title,
+      body,
+      explore_score,
+      is_deleted,
+      created_at,
+      updated_at,
+	  comment_count,
       author:author_id (
         id,
         handle,
@@ -126,52 +367,32 @@ export async function fetchPostDetail(postId: string): Promise<PostDetail> {
 		.eq("id", postId)
 		.single();
 
-	if (postError || !postRow) {
-		throw postError ?? new Error("Post not found");
+	if (error || !data) {
+		throw error ?? new Error("Post not found");
 	}
 
-	if (postRow.is_deleted) throw new Error("Post deleted");
+	const row = data as unknown as DetailRow;
 
-	const post: Post = {
-		id: postRow.id,
-		author_id: postRow.author_id,
-		title: postRow.title,
-		body: postRow.body,
-		explore_score: postRow.explore_score,
-		is_deleted: postRow.is_deleted,
-		created_at: postRow.created_at,
-		updated_at: postRow.updated_at,
-	};
+	if (row.is_deleted) throw new Error("Post deleted");
 
-	const rawAuthor = Array.isArray(postRow.author)
-		? postRow.author[0]
-		: postRow.author;
-
-	const author: Pick<
+	const author = one(row.author);
+	const safeAuthor: Pick<
 		Profile,
 		"id" | "handle" | "display_name" | "avatar_url" | "bio"
-	> = {
-		id: rawAuthor.id,
-		handle: rawAuthor.handle,
-		display_name: rawAuthor.display_name,
-		avatar_url: rawAuthor.avatar_url,
-		bio: rawAuthor.bio,
-	};
-
-	const images: PostImage[] = postRow.images ?? [];
-	const tags: Tag[] = (postRow.post_tags ?? []).map((pt: any) => pt.tag);
-
-	const stats: PostStats = {
-		commentCount: 0,
-		totalCommentLikes: 0,
+	> = author ?? {
+		id: "",
+		handle: "",
+		display_name: null,
+		avatar_url: null,
+		bio: null,
 	};
 
 	return {
-		post,
-		author,
-		images,
-		tags,
-		stats,
+		post: toPost(row),
+		author: safeAuthor,
+		images: row.images ?? [],
+		tags: mapTags(row.post_tags),
+		stats: toStats(row),
 		comments: [],
 	};
 }

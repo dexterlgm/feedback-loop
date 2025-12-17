@@ -7,7 +7,16 @@ export interface CreateProfileParams {
 	displayName?: string | null;
 }
 
-// Create a profile row when a new user signs up.
+export interface UpdateProfileParams {
+	id: string;
+	handle?: string;
+	displayName?: string | null;
+	bio?: string | null;
+	avatarUrl?: string | null;
+	socialLinks?: Record<string, string> | null;
+}
+
+// Create a profile row when a new user signs up
 export async function createProfileForUser(
 	params: CreateProfileParams
 ): Promise<Profile> {
@@ -21,9 +30,12 @@ export async function createProfileForUser(
 			display_name: displayName ?? null,
 		})
 		.select("*")
-		.single();
+		.single<Profile>();
 
-	if (error) throw error;
+	if (error || !data) {
+		throw error ?? new Error("Failed to create profile");
+	}
+
 	return data as Profile;
 }
 
@@ -33,10 +45,10 @@ export async function getProfileById(id: string): Promise<Profile | null> {
 		.from("profiles")
 		.select("*")
 		.eq("id", id)
-		.maybeSingle();
+		.maybeSingle<Profile>();
 
 	if (error) throw error;
-	return (data as Profile) ?? null;
+	return data ? (data as Profile) : null;
 }
 
 // Get a profile by handle
@@ -47,19 +59,10 @@ export async function getProfileByHandle(
 		.from("profiles")
 		.select("*")
 		.eq("handle", handle)
-		.maybeSingle();
+		.maybeSingle<Profile>();
 
 	if (error) throw error;
-	return (data as Profile) ?? null;
-}
-
-export interface UpdateProfileParams {
-	id: string;
-	handle?: string;
-	displayName?: string | null;
-	bio?: string | null;
-	avatarUrl?: string | null;
-	socialLinks?: string[] | null;
+	return data ? (data as Profile) : null;
 }
 
 // Update profile for the given user id
@@ -68,7 +71,14 @@ export async function updateProfile(
 ): Promise<Profile> {
 	const { id, handle, displayName, bio, avatarUrl, socialLinks } = params;
 
-	const updateData: Record<string, unknown> = {};
+	const updateData: Partial<{
+		handle: string;
+		display_name: string | null;
+		bio: string | null;
+		avatar_url: string | null;
+		social_links: Record<string, string> | null;
+	}> = {};
+
 	if (handle !== undefined) updateData.handle = handle;
 	if (displayName !== undefined) updateData.display_name = displayName;
 	if (bio !== undefined) updateData.bio = bio;
@@ -80,9 +90,12 @@ export async function updateProfile(
 		.update(updateData)
 		.eq("id", id)
 		.select("*")
-		.single();
+		.single<Profile>();
 
-	if (error) throw error;
+	if (error || !data) {
+		throw error ?? new Error("Failed to update profile");
+	}
+
 	return data as Profile;
 }
 
@@ -107,6 +120,7 @@ export async function getMedalsForUser(userId: string): Promise<Medal[]> {
 		.from("user_medals")
 		.select(
 			`
+      user_id,
       medal:medal_id (
         id,
         code,
@@ -120,6 +134,20 @@ export async function getMedalsForUser(userId: string): Promise<Medal[]> {
 		.eq("user_id", userId);
 
 	if (error) throw error;
+	if (!data) return [];
 
-	return (data ?? []).map((row: any) => row.medal as Medal);
+	const medals: Medal[] = [];
+
+	for (const row of data) {
+		const raw = row.medal;
+
+		if (!raw) continue;
+
+		const medal = Array.isArray(raw) ? raw[0] : raw;
+		if (!medal) continue;
+
+		medals.push(medal as Medal);
+	}
+
+	return medals;
 }

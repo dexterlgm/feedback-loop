@@ -1,5 +1,3 @@
-// src/types/post.ts
-
 import type { Post, Profile, PostImage, Tag } from "./db";
 import type { SortMode, PaginationParams, PaginatedResult } from "./common";
 import type { CommentWithMeta } from "./comment";
