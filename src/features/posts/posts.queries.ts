@@ -18,6 +18,7 @@ export function usePostsFeed(
 	return useQuery<PostFeedItem[]>({
 		queryKey: ["postsFeed", filter, limit, offset],
 		queryFn: () => fetchPostsFeed({ filter, limit, offset }),
+		placeholderData: (prev) => prev,
 	});
 }
 

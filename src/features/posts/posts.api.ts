@@ -235,34 +235,36 @@ export async function fetchPostsFeed(
 	const { filter, limit, offset } = params;
 	const { sort, searchQuery, tags } = filter;
 
-	let query = supabase
-		.from("posts_with_counts")
-		.select(
-			`
+	const useInnerTags = Boolean(tags && tags.length > 0);
+
+	const selectSql = `
+  id,
+  author_id,
+  title,
+  body,
+  explore_score,
+  is_deleted,
+  created_at,
+  updated_at,
+  comment_count,
+  author:author_id (
+    id,
+    handle,
+    display_name,
+    avatar_url
+  ),
+  images:post_images (*),
+  post_tags:${useInnerTags ? "post_tags!inner" : "post_tags"} (
+    tag:tag_id (
       id,
-      author_id,
-      title,
-      body,
-      explore_score,
-      is_deleted,
-      created_at,
-      updated_at,
-	  comment_count,
-      author:author_id (
-        id,
-        handle,
-        display_name,
-        avatar_url
-      ),
-      images:post_images (*),
-      post_tags (
-        tag:tag_id (
-          id,
-          name
-        )
-      )
-    `
-		)
+      name
+    )
+  )
+`;
+
+	let query = supabase
+		.from("posts")
+		.select(selectSql)
 		.eq("is_deleted", false);
 
 	if (searchQuery && searchQuery.trim() !== "") {
@@ -272,7 +274,32 @@ export async function fetchPostsFeed(
 	}
 
 	if (tags && tags.length > 0) {
-		query = query.in("post_tags.tag.name", tags);
+		const { data: tagRows, error: tagError } = await supabase
+			.from("tags")
+			.select("id")
+			.in("name", tags);
+
+		if (tagError) throw tagError;
+
+		const tagIds = (tagRows ?? []).map((r) => r.id);
+
+		// If no tag ids match, return empty result
+		if (tagIds.length === 0) return [];
+
+		const { data: postTagRows, error: postTagError } = await supabase
+			.from("post_tags")
+			.select("post_id")
+			.in("tag_id", tagIds);
+
+		if (postTagError) throw postTagError;
+
+		const postIds = Array.from(
+			new Set((postTagRows ?? []).map((r) => r.post_id))
+		);
+
+		if (postIds.length === 0) return [];
+
+		query = query.in("id", postIds);
 	}
 
 	if (sort === "newest") {
@@ -294,7 +321,7 @@ export async function fetchPostsByUser(
 	offset: number
 ): Promise<PostFeedItem[]> {
 	let query = supabase
-		.from("posts_with_counts")
+		.from("posts")
 		.select(
 			`
       id,
@@ -313,12 +340,12 @@ export async function fetchPostsByUser(
         avatar_url
       ),
       images:post_images (*),
-      post_tags (
-        tag:tag_id (
-          id,
-          name
-        )
-      )
+      post_tags:post_tags!inner (
+		tag:tag_id (
+			id,
+			name
+		)
+	)
     `
 		)
 		.eq("is_deleted", false)
@@ -336,7 +363,7 @@ export async function fetchPostsByUser(
 // Fetch a single post
 export async function fetchPostDetail(postId: string): Promise<PostDetail> {
 	const { data, error } = await supabase
-		.from("posts_with_counts")
+		.from("posts")
 		.select(
 			`
       id,
