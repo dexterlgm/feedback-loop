@@ -25,7 +25,7 @@ import type { Medal, Profile } from "../types";
 import { MedalIcon } from "../components/common/MedalIcon";
 import { Button } from "react-bootstrap";
 import { UserAvatar } from "../components/common/UserAvatar";
-import type { JSX } from "react";
+import { useState, type JSX } from "react";
 import { groupMedals } from "../utils/medals";
 import { usePostsByUser } from "../features/posts/posts.queries";
 import PostCard from "../components/PostCard";
@@ -35,11 +35,15 @@ const ProfilePage = () => {
 	const { data: profile } = useProfileByHandle(handle);
 	const { data: medals } = useMedalsForUser(profile?.id);
 	const { user, profile: currentProfile } = useAuth();
-	const { data: posts, isLoading: postsLoading } = usePostsByUser(
-		profile?.id,
-		20,
-		0
-	);
+
+	const PAGE_SIZE = 12;
+	const [limit, setLimit] = useState(PAGE_SIZE);
+
+	const {
+		data: posts,
+		isLoading: postsLoading,
+		isFetching,
+	} = usePostsByUser(profile?.id, limit, 0);
 
 	const canEdit =
 		user && profile && (currentProfile?.is_admin || user.id === profile.id);
@@ -393,6 +397,7 @@ const ProfilePage = () => {
 								</div>
 							)}
 						</div>
+
 						<div className="col-md-4 d-none d-md-block">
 							<ProfileInfo
 								profile={profile}
@@ -412,6 +417,20 @@ const ProfilePage = () => {
 								</div>
 							)}
 						</div>
+
+						{posts && posts.length >= limit && (
+							<div className="d-grid mt-3">
+								<Button
+									variant="outline-primary"
+									disabled={isFetching}
+									onClick={() =>
+										setLimit((prev) => prev + PAGE_SIZE)
+									}
+								>
+									{isFetching ? "Loading…" : "Load more"}
+								</Button>
+							</div>
+						)}
 					</div>
 				</div>
 			)}
