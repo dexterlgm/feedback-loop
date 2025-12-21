@@ -26,10 +26,10 @@ export interface FetchPostsParams {
 }
 
 // Stopping Supabase from returning joined tables as an object
-function one<T>(value: T | T[] | null | undefined): T | null {
+const one = <T>(value: T | T[] | null | undefined): T | null => {
 	if (!value) return null;
 	return Array.isArray(value) ? value[0] ?? null : value;
-}
+};
 
 type FeedRow = {
 	id: string;
@@ -97,9 +97,12 @@ type DetailRow = {
 	}> | null;
 };
 
-function mapTags(
+type TagIdRow = { id: number };
+type PostIdRow = { post_id: string };
+
+const mapTags = (
 	post_tags: FeedRow["post_tags"] | DetailRow["post_tags"]
-): Tag[] {
+): Tag[] => {
 	const tags: Tag[] = [];
 
 	if (!post_tags) return tags;
@@ -112,9 +115,9 @@ function mapTags(
 	}
 
 	return tags;
-}
+};
 
-function toPost(row: FeedRow | DetailRow): Post {
+const toPost = (row: FeedRow | DetailRow): Post => {
 	return {
 		id: row.id,
 		author_id: row.author_id,
@@ -125,16 +128,16 @@ function toPost(row: FeedRow | DetailRow): Post {
 		created_at: row.created_at,
 		updated_at: row.updated_at,
 	};
-}
+};
 
-function toStats(row: FeedRow | DetailRow): PostStats {
+const toStats = (row: FeedRow | DetailRow): PostStats => {
 	return {
 		commentCount: row.comment_count ?? 0,
 		totalCommentLikes: 0,
 	};
-}
+};
 
-function mapFeedRow(row: FeedRow): PostFeedItem {
+const mapFeedRow = (row: FeedRow): PostFeedItem => {
 	const author = one(row.author);
 
 	const safeAuthor: Pick<
@@ -149,7 +152,7 @@ function mapFeedRow(row: FeedRow): PostFeedItem {
 		tags: mapTags(row.post_tags),
 		stats: toStats(row),
 	};
-}
+};
 
 // Create a post, upload images, and attach tags.
 export async function createPostWithImages(
@@ -273,29 +276,29 @@ export async function fetchPostsFeed(
 		);
 	}
 
+	// Tag filtering
 	if (tags && tags.length > 0) {
-		const { data: tagRows, error: tagError } = await supabase
+		const { data: tagRowsRaw, error: tagError } = await supabase
 			.from("tags")
 			.select("id")
 			.in("name", tags);
 
 		if (tagError) throw tagError;
 
-		const tagIds = (tagRows ?? []).map((r) => r.id);
+		const tagRows = (tagRowsRaw ?? []) as unknown as TagIdRow[];
+		const tagIds = tagRows.map((r) => r.id);
 
-		// If no tag ids match, return empty result
 		if (tagIds.length === 0) return [];
 
-		const { data: postTagRows, error: postTagError } = await supabase
+		const { data: postTagRowsRaw, error: postTagError } = await supabase
 			.from("post_tags")
 			.select("post_id")
 			.in("tag_id", tagIds);
 
 		if (postTagError) throw postTagError;
 
-		const postIds = Array.from(
-			new Set((postTagRows ?? []).map((r) => r.post_id))
-		);
+		const postTagRows = (postTagRowsRaw ?? []) as unknown as PostIdRow[];
+		const postIds = Array.from(new Set(postTagRows.map((r) => r.post_id)));
 
 		if (postIds.length === 0) return [];
 

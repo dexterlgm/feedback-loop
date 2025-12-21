@@ -44,7 +44,7 @@ type CommentReactionRow = {
 
 type UserMedalRow = {
 	user_id: string;
-	medal: Medal | null;
+	medal: Medal | Medal[] | null;
 };
 
 function normalizeAuthor(author: AuthorRow | AuthorRow[] | null): AuthorRow {
@@ -75,7 +75,7 @@ export async function createComment(
 			body,
 		})
 		.select("*")
-		.single();
+		.single<Comment>();
 
 	if (error || !data) throw error ?? new Error("Failed to create comment");
 
@@ -115,7 +115,6 @@ export async function setCommentReaction(
 	if (userError) throw userError;
 	if (!user) throw new Error("Not logged in");
 
-	// Clear reaction
 	if (reaction === null) {
 		const { error } = await supabase
 			.from("comment_reactions")
@@ -175,10 +174,8 @@ export async function fetchCommentsForPost(
 
 	const comments: CommentRow[] = (data ?? []) as unknown as CommentRow[];
 
-	const commentIds: string[] = comments.map((c) => c.id);
-	const authorIds: string[] = Array.from(
-		new Set(comments.map((c) => c.author_id))
-	);
+	const commentIds = comments.map((c) => c.id);
+	const authorIds = Array.from(new Set(comments.map((c) => c.author_id)));
 
 	let reactionsByCommentId: Record<string, CommentReactionsSummary> = {};
 
@@ -190,7 +187,7 @@ export async function fetchCommentsForPost(
 
 		if (reactionsError) throw reactionsError;
 
-		const reactions: CommentReactionRow[] = (reactionsRaw ??
+		const reactions = (reactionsRaw ??
 			[]) as unknown as CommentReactionRow[];
 
 		reactionsByCommentId = commentIds.reduce<
@@ -203,7 +200,7 @@ export async function fetchCommentsForPost(
 				(r) => r.reaction === -1
 			).length;
 
-			const viewerReaction: CommentReactionValue | null =
+			const viewerReaction =
 				currentUserId != null
 					? related.find((r) => r.user_id === currentUserId)
 							?.reaction ?? null
@@ -242,17 +239,20 @@ export async function fetchCommentsForPost(
 
 		if (userMedalsError) throw userMedalsError;
 
-		const userMedalsRows: UserMedalRow[] = (userMedalsRowsRaw ??
+		const userMedalsRows = (userMedalsRowsRaw ??
 			[]) as unknown as UserMedalRow[];
 
 		medalsByUserId = userMedalsRows.reduce<Record<string, Medal[]>>(
 			(acc, row) => {
-				const userId = row.user_id;
-				const medal = row.medal;
-				if (!medal) return acc;
+				if (!row.medal) return acc;
 
-				if (!acc[userId]) acc[userId] = [];
-				acc[userId].push(medal);
+				const medals = Array.isArray(row.medal)
+					? row.medal
+					: [row.medal];
+
+				if (!acc[row.user_id]) acc[row.user_id] = [];
+				acc[row.user_id].push(...medals);
+
 				return acc;
 			},
 			{}
@@ -270,7 +270,7 @@ export async function fetchCommentsForPost(
 			updated_at: row.updated_at,
 		};
 
-		const author: AuthorRow = normalizeAuthor(row.author);
+		const author = normalizeAuthor(row.author);
 
 		const reactions = reactionsByCommentId[row.id] ?? {
 			likeCount: 0,

@@ -1,7 +1,20 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Container, Row, Col, Spinner, Alert, Badge } from "react-bootstrap";
-import { usePostDetail } from "../features/posts/posts.queries";
+import { useMemo, useState } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import {
+	Container,
+	Row,
+	Col,
+	Spinner,
+	Alert,
+	Badge,
+	Button,
+	Modal,
+} from "react-bootstrap";
+import { FiTrash2 } from "react-icons/fi";
+import {
+	usePostDetail,
+	useDeletePostMutation,
+} from "../features/posts/posts.queries";
 import { UserAvatar } from "../components/common/UserAvatar";
 import { useForm } from "react-hook-form";
 import { useAuth } from "../hooks/useAuth";
@@ -12,28 +25,98 @@ import {
 	useSetCommentReactionMutation,
 } from "../features/comments/comments.queries";
 import Comment from "../components/Comment";
+import type { CommentReactionValue } from "../types";
+
+type CommentFormValues = { body: string };
+
+type ConfirmState =
+	| { open: false }
+	| { open: true; kind: "post"; postId: string }
+	| { open: true; kind: "comment"; commentId: string };
 
 const PostPage = () => {
 	const { id } = useParams<{ id: string }>();
+	const navigate = useNavigate();
 
+	// Hooks (must always run, even when id is missing)
 	const { data: postDetail, isLoading, error } = usePostDetail(id);
 	const { user, profile: currentProfile } = useAuth();
 
 	const { data: comments, isLoading: commentsLoading } =
 		useCommentsForPost(id);
 
-	const createCommentMutation = useCreateCommentMutation(id!);
-	const deleteCommentMutation = useDeleteCommentMutation(id!);
-	const setReactionMutation = useSetCommentReactionMutation(id!);
+	const createCommentMutation = useCreateCommentMutation(id ?? "");
+	const deleteCommentMutation = useDeleteCommentMutation(id ?? "");
+	const setReactionMutation = useSetCommentReactionMutation(id ?? "");
+	const deletePostMutation = useDeletePostMutation();
 
 	const {
 		register,
 		handleSubmit,
 		reset,
 		formState: { errors, isSubmitting },
-	} = useForm<{ body: string }>();
+	} = useForm<CommentFormValues>();
 
 	const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+	const [confirm, setConfirm] = useState<ConfirmState>({ open: false });
+
+	const canDeletePost = useMemo((): boolean => {
+		if (!user || !postDetail) return false;
+		if (currentProfile?.is_admin) return true;
+		return user.id === postDetail.post.author_id;
+	}, [user, currentProfile?.is_admin, postDetail]);
+
+	const canDeleteComment = (authorId: string): boolean => {
+		if (!user) return false;
+		if (currentProfile?.is_admin) return true;
+		return user.id === authorId;
+	};
+
+	const openDeleteCommentModal = (commentId: string) => {
+		setConfirm({ open: true, kind: "comment", commentId });
+	};
+
+	const openDeletePostModal = (postId: string) => {
+		setConfirm({ open: true, kind: "post", postId });
+	};
+
+	const closeConfirm = () => {
+		setConfirm({ open: false });
+	};
+
+	const confirmDelete = async (): Promise<void> => {
+		if (!confirm.open) return;
+
+		if (confirm.kind === "comment") {
+			deleteCommentMutation.mutate({ commentId: confirm.commentId });
+			closeConfirm();
+			return;
+		}
+
+		try {
+			await deletePostMutation.mutateAsync({ postId: confirm.postId });
+			closeConfirm();
+			navigate("/", { replace: true });
+		} catch (err: unknown) {
+			closeConfirm();
+			console.error(err);
+		}
+	};
+
+	const handleReact = (
+		commentId: string,
+		reaction: CommentReactionValue | null
+	) => {
+		setReactionMutation.mutate({ commentId, reaction });
+	};
+
+	const onSubmitComment = async (values: CommentFormValues) => {
+		const text = values.body.trim();
+		if (!text) return;
+
+		await createCommentMutation.mutateAsync({ body: text });
+		reset();
+	};
 
 	if (!id) {
 		return (
@@ -59,29 +142,6 @@ const PostPage = () => {
 		);
 	}
 
-	const canDeleteComment = (authorId: string) => {
-		if (!user) return false;
-		if (currentProfile?.is_admin) return true;
-		return user.id === authorId;
-	};
-
-	const handleDeleteComment = (commentId: string) => {
-		if (!confirm("Delete this comment?")) return;
-		deleteCommentMutation.mutate({ commentId });
-	};
-
-	const handleReact = (commentId: string, reaction: 1 | -1 | null) => {
-		setReactionMutation.mutate({ commentId, reaction });
-	};
-
-	const onSubmitComment = async (values: { body: string }) => {
-		const text = values.body.trim();
-		if (!text) return;
-
-		await createCommentMutation.mutateAsync({ body: text });
-		reset();
-	};
-
 	const { post, author, images, tags } = postDetail;
 
 	const mainImage =
@@ -93,31 +153,51 @@ const PostPage = () => {
 		<Container className="pb-4 pt-1">
 			<Row className="mb-3">
 				<Col>
-					<h2 className="mb-2">{post.title}</h2>
+					<div className="d-flex align-items-start justify-content-between gap-3">
+						<div className="flex-grow-1">
+							<h2 className="mb-2">{post.title}</h2>
 
-					<div className="d-flex align-items-center text-muted">
-						<Link
-							to={`/u/${author.handle}`}
-							className="d-flex align-items-center text-decoration-none text-reset"
-						>
-							<UserAvatar
-								src={author.avatar_url}
-								alt={author.handle}
-								size={40}
-								className="me-2"
-							/>
-							<div>
-								<div className="fw-semibold">
-									{author.display_name ?? author.handle}
-								</div>
-								<div className="small">
-									@{author.handle}
-									{createdAt && (
-										<> · {createdAt.toLocaleDateString()}</>
-									)}
-								</div>
+							<div className="d-flex align-items-center text-muted">
+								<Link
+									to={`/u/${author.handle}`}
+									className="d-flex align-items-center text-decoration-none text-reset"
+								>
+									<UserAvatar
+										src={author.avatar_url}
+										alt={author.handle}
+										size={40}
+										className="me-2"
+									/>
+									<div>
+										<div className="fw-semibold">
+											{author.display_name ??
+												author.handle}
+										</div>
+										<div className="small">
+											@{author.handle}
+											{createdAt && (
+												<>
+													{" "}
+													·{" "}
+													{createdAt.toLocaleDateString()}
+												</>
+											)}
+										</div>
+									</div>
+								</Link>
 							</div>
-						</Link>
+						</div>
+
+						{canDeletePost && (
+							<Button
+								variant="link"
+								className="p-0 text-danger"
+								onClick={() => openDeletePostModal(post.id)}
+								aria-label="Delete post"
+							>
+								<FiTrash2 size={20} />
+							</Button>
+						)}
 					</div>
 				</Col>
 			</Row>
@@ -143,7 +223,7 @@ const PostPage = () => {
 						<div className="d-flex flex-wrap gap-2">
 							{images.map((img, index) => (
 								<button
-									key={img.id ?? index}
+									key={img.id}
 									type="button"
 									className="border-0 p-0 rounded overflow-hidden"
 									style={{
@@ -172,7 +252,13 @@ const PostPage = () => {
 
 					{post.body && (
 						<div className="mt-4">
-							<p style={{ whiteSpace: "pre-wrap" }}>
+							<p
+								style={{
+									whiteSpace: "pre-wrap",
+									overflowWrap: "break-word",
+									wordBreak: "break-word",
+								}}
+							>
 								{post.body}
 							</p>
 						</div>
@@ -240,7 +326,7 @@ const PostPage = () => {
 							<p className="text-muted">Loading comments…</p>
 						)}
 
-						{!commentsLoading && comments?.length === 0 && (
+						{!commentsLoading && (comments?.length ?? 0) === 0 && (
 							<p className="text-muted">
 								No comments yet. Be the first to comment.
 							</p>
@@ -253,13 +339,41 @@ const PostPage = () => {
 								canDelete={canDeleteComment(
 									c.comment.author_id
 								)}
-								onDelete={handleDeleteComment}
+								onDelete={() =>
+									openDeleteCommentModal(c.comment.id)
+								}
 								onReact={handleReact}
 							/>
 						))}
 					</div>
 				</Col>
 			</Row>
+
+			<Modal show={confirm.open} onHide={closeConfirm} centered>
+				<Modal.Header closeButton>
+					<Modal.Title>
+						{confirm.open && confirm.kind === "post"
+							? "Delete post?"
+							: "Delete comment?"}
+					</Modal.Title>
+				</Modal.Header>
+
+				<Modal.Body>This action can’t be undone.</Modal.Body>
+
+				<Modal.Footer>
+					<Button variant="secondary" onClick={closeConfirm}>
+						Cancel
+					</Button>
+					<Button
+						variant="danger"
+						onClick={() => {
+							void confirmDelete();
+						}}
+					>
+						Delete
+					</Button>
+				</Modal.Footer>
+			</Modal>
 		</Container>
 	);
 };

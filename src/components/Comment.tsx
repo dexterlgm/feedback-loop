@@ -9,7 +9,7 @@ import { groupMedals } from "../utils/medals";
 interface CommentProps {
 	item: CommentWithMeta;
 	canDelete: boolean;
-	onDelete: (commentId: string) => void;
+	onDelete: () => void;
 	onReact: (commentId: string, reaction: CommentReactionValue | null) => void;
 }
 
@@ -111,7 +111,8 @@ const Comment = ({ item, canDelete, onDelete, onReact }: CommentProps) => {
 									variant="link"
 									size="sm"
 									className="p-0 text-danger"
-									onClick={() => onDelete(comment.id)}
+									onClick={onDelete}
+									aria-label="Delete comment"
 								>
 									<FiTrash2 size={16} />
 								</Button>
