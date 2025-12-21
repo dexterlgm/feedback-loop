@@ -1,5 +1,6 @@
-import { Card } from "react-bootstrap";
+import { Card, Badge } from "react-bootstrap";
 import { Link } from "react-router-dom";
+import { FiMessageCircle } from "react-icons/fi";
 import type { PostFeedItem } from "./../types";
 import { UserAvatar } from "./common/UserAvatar";
 
@@ -47,6 +48,24 @@ const PostCard = ({ item, variant = "list" }: PostCardProps) => {
 			)}
 
 			<Card.Body className="d-flex flex-column">
+				{item.tags.length > 0 && (
+					<div className="d-flex flex-wrap gap-1 mb-2">
+						{item.tags.map((tag) => (
+							<Badge
+								key={tag.id}
+								bg="secondary"
+								pill
+								style={{
+									fontSize: 11,
+									fontWeight: 500,
+								}}
+							>
+								{tag.name}
+							</Badge>
+						))}
+					</div>
+				)}
+
 				<div className="d-flex align-items-center gap-2 mb-2">
 					<UserAvatar
 						src={item.author.avatar_url}
@@ -73,8 +92,11 @@ const PostCard = ({ item, variant = "list" }: PostCardProps) => {
 					</Link>
 				</Card.Title>
 
-				<div className="mt-auto d-flex justify-content-between text-muted small">
-					<span>{item.stats.commentCount} comments</span>
+				<div className="mt-auto d-flex justify-content-end text-muted small">
+					<span className="d-inline-flex align-items-center gap-1">
+						<FiMessageCircle size={14} />
+						<span>{item.stats.commentCount}</span>
+					</span>
 				</div>
 			</Card.Body>
 		</Card>
