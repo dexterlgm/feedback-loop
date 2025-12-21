@@ -7,8 +7,10 @@ import ProfilePage from "./pages/ProfilePage";
 import EditProfilePage from "./pages/EditProfilePage";
 import AppFooter from "./components/AppFooter";
 import PostPage from "./pages/PostPage";
+import { useNotificationsRealtime } from "./features/notifications/notifications.queries";
 
 function App() {
+	useNotificationsRealtime();
 	return (
 		<BrowserRouter>
 			<div className="d-flex flex-column min-vh-100">

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Navbar, Container, Nav, Button, Dropdown } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
-import { FiLogIn, FiBell, FiPlus } from "react-icons/fi";
-import { AuthModal } from "./AuthModal";
+import { FiLogIn, FiPlus } from "react-icons/fi";
+import AuthModal from "./AuthModal";
 import { useAuth } from "../hooks/useAuth";
 import { useSignOutMutation } from "../features/auth/auth.queries";
 import { UserAvatar } from "../components/common/UserAvatar";
+import NotificationsBell from "./NotificationsBell";
 
 export function AppNavbar() {
 	const [showAuthModal, setShowAuthModal] = useState(false);
@@ -51,13 +52,7 @@ export function AppNavbar() {
 									<FiPlus className="mx-1" />
 								</Button>
 
-								<Button
-									variant="link"
-									className="p-2 border-0"
-									// onClick={...}
-								>
-									<FiBell size={28} />
-								</Button>
+								<NotificationsBell />
 
 								<Dropdown align="end">
 									<Dropdown.Toggle
