@@ -9,20 +9,30 @@ import { groupMedals } from "../utils/medals";
 interface CommentProps {
 	item: CommentWithMeta;
 	canDelete: boolean;
-	onDelete: () => void;
+	onDelete: (commentId: string) => void;
 	onReact: (commentId: string, reaction: CommentReactionValue | null) => void;
+	currentUserId: string | null;
 }
 
-const Comment = ({ item, canDelete, onDelete, onReact }: CommentProps) => {
+const Comment = ({
+	item,
+	canDelete,
+	onDelete,
+	onReact,
+	currentUserId,
+}: CommentProps) => {
 	const { comment, author, medals, reactions } = item;
 
 	const createdAt = new Date(comment.created_at);
+	const isOwnComment = currentUserId === comment.author_id;
 
 	const handleLike = () => {
+		if (isOwnComment) return;
 		onReact(comment.id, reactions.viewerReaction === 1 ? null : 1);
 	};
 
 	const handleDislike = () => {
+		if (isOwnComment) return;
 		onReact(comment.id, reactions.viewerReaction === -1 ? null : -1);
 	};
 
@@ -78,6 +88,7 @@ const Comment = ({ item, canDelete, onDelete, onReact }: CommentProps) => {
 								<Button
 									variant="link"
 									size="sm"
+									disabled={isOwnComment}
 									className={`p-0 ${
 										reactions.viewerReaction === 1
 											? "text-primary"
@@ -95,6 +106,7 @@ const Comment = ({ item, canDelete, onDelete, onReact }: CommentProps) => {
 								<Button
 									variant="link"
 									size="sm"
+									disabled={isOwnComment}
 									className={`p-0 ${
 										reactions.viewerReaction === -1
 											? "text-danger"
@@ -111,8 +123,7 @@ const Comment = ({ item, canDelete, onDelete, onReact }: CommentProps) => {
 									variant="link"
 									size="sm"
 									className="p-0 text-danger"
-									onClick={onDelete}
-									aria-label="Delete comment"
+									onClick={() => onDelete(comment.id)}
 								>
 									<FiTrash2 size={16} />
 								</Button>

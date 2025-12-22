@@ -9,6 +9,7 @@ import {
 	Badge,
 	Button,
 	Modal,
+	Form,
 } from "react-bootstrap";
 import { FiTrash2 } from "react-icons/fi";
 import {
@@ -25,20 +26,14 @@ import {
 	useSetCommentReactionMutation,
 } from "../features/comments/comments.queries";
 import Comment from "../components/Comment";
-import type { CommentReactionValue } from "../types";
+import type { CommentWithMeta } from "../types";
 
-type CommentFormValues = { body: string };
-
-type ConfirmState =
-	| { open: false }
-	| { open: true; kind: "post"; postId: string }
-	| { open: true; kind: "comment"; commentId: string };
+type CommentSort = "newest" | "top";
 
 const PostPage = () => {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 
-	// Hooks (must always run, even when id is missing)
 	const { data: postDetail, isLoading, error } = usePostDetail(id);
 	const { user, profile: currentProfile } = useAuth();
 
@@ -48,6 +43,7 @@ const PostPage = () => {
 	const createCommentMutation = useCreateCommentMutation(id ?? "");
 	const deleteCommentMutation = useDeleteCommentMutation(id ?? "");
 	const setReactionMutation = useSetCommentReactionMutation(id ?? "");
+
 	const deletePostMutation = useDeletePostMutation();
 
 	const {
@@ -55,68 +51,39 @@ const PostPage = () => {
 		handleSubmit,
 		reset,
 		formState: { errors, isSubmitting },
-	} = useForm<CommentFormValues>();
+	} = useForm<{ body: string }>();
 
 	const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-	const [confirm, setConfirm] = useState<ConfirmState>({ open: false });
+	const [showDeletePostModal, setShowDeletePostModal] = useState(false);
+	const [showDeleteCommentModal, setShowDeleteCommentModal] = useState(false);
+	const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
 
-	const canDeletePost = useMemo((): boolean => {
-		if (!user || !postDetail) return false;
-		if (currentProfile?.is_admin) return true;
-		return user.id === postDetail.post.author_id;
-	}, [user, currentProfile?.is_admin, postDetail]);
+	const [commentSort, setCommentSort] = useState<CommentSort>("top");
 
-	const canDeleteComment = (authorId: string): boolean => {
-		if (!user) return false;
-		if (currentProfile?.is_admin) return true;
-		return user.id === authorId;
-	};
+	const sortedComments = useMemo<CommentWithMeta[]>(() => {
+		const list = comments ?? [];
+		if (list.length === 0) return [];
 
-	const openDeleteCommentModal = (commentId: string) => {
-		setConfirm({ open: true, kind: "comment", commentId });
-	};
-
-	const openDeletePostModal = (postId: string) => {
-		setConfirm({ open: true, kind: "post", postId });
-	};
-
-	const closeConfirm = () => {
-		setConfirm({ open: false });
-	};
-
-	const confirmDelete = async (): Promise<void> => {
-		if (!confirm.open) return;
-
-		if (confirm.kind === "comment") {
-			deleteCommentMutation.mutate({ commentId: confirm.commentId });
-			closeConfirm();
-			return;
+		if (commentSort === "newest") {
+			return [...list].sort(
+				(a, b) =>
+					new Date(b.comment.created_at).getTime() -
+					new Date(a.comment.created_at).getTime()
+			);
 		}
 
-		try {
-			await deletePostMutation.mutateAsync({ postId: confirm.postId });
-			closeConfirm();
-			navigate("/", { replace: true });
-		} catch (err: unknown) {
-			closeConfirm();
-			console.error(err);
-		}
-	};
+		return [...list].sort((a, b) => {
+			const aScore = a.reactions.likeCount - a.reactions.dislikeCount;
+			const bScore = b.reactions.likeCount - b.reactions.dislikeCount;
 
-	const handleReact = (
-		commentId: string,
-		reaction: CommentReactionValue | null
-	) => {
-		setReactionMutation.mutate({ commentId, reaction });
-	};
+			if (bScore !== aScore) return bScore - aScore;
 
-	const onSubmitComment = async (values: CommentFormValues) => {
-		const text = values.body.trim();
-		if (!text) return;
-
-		await createCommentMutation.mutateAsync({ body: text });
-		reset();
-	};
+			return (
+				new Date(b.comment.created_at).getTime() -
+				new Date(a.comment.created_at).getTime()
+			);
+		});
+	}, [comments, commentSort]);
 
 	if (!id) {
 		return (
@@ -142,7 +109,49 @@ const PostPage = () => {
 		);
 	}
 
-	const { post, author, images, tags } = postDetail;
+	const { post, author, images, tags, stats } = postDetail;
+
+	const canDeletePost = () => {
+		if (!user) return false;
+		if (currentProfile?.is_admin) return true;
+		return user.id === post.author_id;
+	};
+
+	const canDeleteComment = (authorId: string) => {
+		if (!user) return false;
+		if (currentProfile?.is_admin) return true;
+		return user.id === authorId;
+	};
+
+	const requestDeleteComment = (commentId: string) => {
+		setCommentToDelete(commentId);
+		setShowDeleteCommentModal(true);
+	};
+
+	const confirmDeleteComment = () => {
+		if (!commentToDelete) return;
+		deleteCommentMutation.mutate({ commentId: commentToDelete });
+		setShowDeleteCommentModal(false);
+		setCommentToDelete(null);
+	};
+
+	const handleReact = (commentId: string, reaction: 1 | -1 | null) => {
+		setReactionMutation.mutate({ commentId, reaction });
+	};
+
+	const onSubmitComment = async (values: { body: string }) => {
+		const text = values.body.trim();
+		if (!text) return;
+
+		await createCommentMutation.mutateAsync({ body: text });
+		reset();
+	};
+
+	const confirmDeletePost = async () => {
+		await deletePostMutation.mutateAsync({ postId: post.id });
+		setShowDeletePostModal(false);
+		navigate("/");
+	};
 
 	const mainImage =
 		images && images.length > 0 ? images[selectedImageIndex] : null;
@@ -188,11 +197,11 @@ const PostPage = () => {
 							</div>
 						</div>
 
-						{canDeletePost && (
+						{canDeletePost() && (
 							<Button
 								variant="link"
 								className="p-0 text-danger"
-								onClick={() => openDeletePostModal(post.id)}
+								onClick={() => setShowDeletePostModal(true)}
 								aria-label="Delete post"
 							>
 								<FiTrash2 size={20} />
@@ -255,8 +264,7 @@ const PostPage = () => {
 							<p
 								style={{
 									whiteSpace: "pre-wrap",
-									overflowWrap: "break-word",
-									wordBreak: "break-word",
+									wordBreak: "break-all",
 								}}
 							>
 								{post.body}
@@ -282,10 +290,26 @@ const PostPage = () => {
 					<div className="mt-4 text-muted small">
 						<hr />
 
-						<h5>Comments</h5>
+						<div className="d-flex align-items-center justify-content-between">
+							<h5 className="mb-0">Comments</h5>
+
+							<Form.Select
+								size="sm"
+								style={{ width: 140 }}
+								value={commentSort}
+								onChange={(e) =>
+									setCommentSort(
+										e.target.value as CommentSort
+									)
+								}
+							>
+								<option value="top">Top</option>
+								<option value="newest">Newest</option>
+							</Form.Select>
+						</div>
 
 						{!user && (
-							<p className="text-muted">
+							<p className="text-muted mt-2">
 								Log in to leave a comment.
 							</p>
 						)}
@@ -293,7 +317,7 @@ const PostPage = () => {
 						{user && (
 							<form
 								onSubmit={handleSubmit(onSubmitComment)}
-								className="mb-3"
+								className="mb-1 mt-2"
 							>
 								<textarea
 									className="form-control mb-2"
@@ -326,49 +350,78 @@ const PostPage = () => {
 							<p className="text-muted">Loading comments…</p>
 						)}
 
-						{!commentsLoading && (comments?.length ?? 0) === 0 && (
+						{!commentsLoading && sortedComments.length === 0 && (
 							<p className="text-muted">
 								No comments yet. Be the first to comment.
 							</p>
 						)}
 
-						{comments?.map((c) => (
+						{!commentsLoading && sortedComments.length > 0 && (
+							<div className="text-muted small mb-1 text-end">
+								{stats.commentCount} comments
+							</div>
+						)}
+
+						{sortedComments.map((c) => (
 							<Comment
 								key={c.comment.id}
 								item={c}
 								canDelete={canDeleteComment(
 									c.comment.author_id
 								)}
-								onDelete={() =>
-									openDeleteCommentModal(c.comment.id)
-								}
+								onDelete={requestDeleteComment}
 								onReact={handleReact}
+								currentUserId={user?.id ?? null}
 							/>
 						))}
 					</div>
 				</Col>
 			</Row>
 
-			<Modal show={confirm.open} onHide={closeConfirm} centered>
+			<Modal
+				show={showDeletePostModal}
+				onHide={() => setShowDeletePostModal(false)}
+				centered
+			>
 				<Modal.Header closeButton>
-					<Modal.Title>
-						{confirm.open && confirm.kind === "post"
-							? "Delete post?"
-							: "Delete comment?"}
-					</Modal.Title>
+					<Modal.Title>Delete post?</Modal.Title>
 				</Modal.Header>
-
-				<Modal.Body>This action can’t be undone.</Modal.Body>
-
+				<Modal.Body>This action cannot be undone.</Modal.Body>
 				<Modal.Footer>
-					<Button variant="secondary" onClick={closeConfirm}>
+					<Button
+						variant="secondary"
+						onClick={() => setShowDeletePostModal(false)}
+					>
 						Cancel
 					</Button>
 					<Button
 						variant="danger"
-						onClick={() => {
-							void confirmDelete();
-						}}
+						onClick={() => void confirmDeletePost()}
+					>
+						Delete
+					</Button>
+				</Modal.Footer>
+			</Modal>
+
+			<Modal
+				show={showDeleteCommentModal}
+				onHide={() => setShowDeleteCommentModal(false)}
+				centered
+			>
+				<Modal.Header closeButton>
+					<Modal.Title>Delete comment?</Modal.Title>
+				</Modal.Header>
+				<Modal.Body>This action cannot be undone.</Modal.Body>
+				<Modal.Footer>
+					<Button
+						variant="secondary"
+						onClick={() => setShowDeleteCommentModal(false)}
+					>
+						Cancel
+					</Button>
+					<Button
+						variant="danger"
+						onClick={() => confirmDeleteComment()}
 					>
 						Delete
 					</Button>
