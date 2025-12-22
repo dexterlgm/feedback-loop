@@ -19,6 +19,19 @@ type ImageItem = {
 const MIN_TAGS = 1;
 const MAX_TAGS = 3;
 
+const errorMessageFromUnknown = (err: unknown): string => {
+	if (err instanceof Error) return err.message;
+	if (typeof err === "string") return err;
+
+	if (typeof err === "object" && err !== null) {
+		const obj = err as Record<string, unknown>;
+		const msg = obj["message"];
+		if (typeof msg === "string") return msg;
+	}
+
+	return "Failed to create post";
+};
+
 const CreatePostPage = () => {
 	const navigate = useNavigate();
 	const { user } = useAuth();
@@ -135,14 +148,14 @@ const CreatePostPage = () => {
 			images.forEach((item) => URL.revokeObjectURL(item.previewUrl));
 
 			navigate(`/posts/${post.id}`);
-		} catch (err: any) {
+		} catch (err: unknown) {
 			console.error(err);
-			setErrorMessage(err.message ?? "Failed to create post.");
+			setErrorMessage(errorMessageFromUnknown(err));
 		}
 	};
 
 	return (
-		<Container className="py-4">
+		<Container className="pb-4 pt-1">
 			<h2 className="mb-3">Create a new post</h2>
 
 			{errorMessage && <Alert variant="danger">{errorMessage}</Alert>}

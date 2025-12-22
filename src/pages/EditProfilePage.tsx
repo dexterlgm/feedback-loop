@@ -111,22 +111,34 @@ const EditProfilePage = () => {
 				avatarUrl = await uploadAvatar(avatarFile, user.id);
 			}
 
-			const cleanedLinks = values.socialLinks
-				.map((link) => link.trim())
-				.filter((link) => link.length > 0);
+			const socialLinksRecord: Record<string, string> = {};
+
+			for (const link of values.socialLinks) {
+				const trimmed = link.trim();
+				if (trimmed.length > 0) {
+					socialLinksRecord[trimmed] = trimmed;
+				}
+			}
 
 			await updateProfileMutation.mutateAsync({
 				id: profile!.id,
 				displayName: values.displayName || undefined,
 				bio: values.bio || undefined,
-				socialLinks: cleanedLinks,
+				socialLinks:
+					Object.keys(socialLinksRecord).length > 0
+						? socialLinksRecord
+						: null,
 				avatarUrl: avatarUrl ?? undefined,
 			});
 
 			navigate(`/u/${profile!.handle}`);
-		} catch (err: any) {
+		} catch (err: unknown) {
 			console.error(err);
-			setErrorMessage(err.message ?? "Failed to update profile");
+
+			const message =
+				err instanceof Error ? err.message : "Failed to update profile";
+
+			setErrorMessage(message);
 		}
 	};
 
