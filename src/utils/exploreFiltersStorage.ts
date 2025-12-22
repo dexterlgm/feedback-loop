@@ -7,9 +7,21 @@ export const loadSavedTags = (): string[] => {
 	try {
 		const raw = localStorage.getItem(TAGS_KEY);
 		if (!raw) return [];
-		const parsed = JSON.parse(raw) as unknown;
+
+		const parsed: unknown = JSON.parse(raw);
 		if (!Array.isArray(parsed)) return [];
-		return parsed.filter((x): x is string => typeof x === "string");
+
+		const values: unknown[] = parsed;
+		const tags: string[] = [];
+
+		for (let i = 0; i < values.length; i++) {
+			const value: unknown = values[i];
+			if (typeof value === "string") {
+				tags.push(value);
+			}
+		}
+
+		return tags;
 	} catch {
 		return [];
 	}
@@ -21,7 +33,10 @@ export const saveTags = (tags: string[]): void => {
 
 export const loadSavedSort = (): SortValue => {
 	const raw = localStorage.getItem(SORT_KEY);
-	return raw === "newest" || raw === "explore" ? raw : "explore";
+
+	if (raw === "newest") return "newest";
+	if (raw === "explore") return "explore";
+	return "explore";
 };
 
 export const saveSort = (sort: SortValue): void => {
