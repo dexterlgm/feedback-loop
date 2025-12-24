@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Modal, Button, Form, Alert } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import { useAuth } from "../hooks/useAuth";
@@ -7,7 +7,7 @@ import {
 	useSignUpMutation,
 } from "../features/auth/auth.queries";
 
-type Mode = "login" | "signup";
+export type Mode = "login" | "signup";
 
 type LoginValues = {
 	email: string;
@@ -38,9 +38,10 @@ const containsInsensitive = (haystack: string, needle: string): boolean => {
 interface AuthModalProps {
 	show: boolean;
 	onHide: () => void;
+	initialMode?: Mode;
 }
 
-const AuthModal = ({ show, onHide }: AuthModalProps) => {
+const AuthModal = ({ show, onHide, initialMode }: AuthModalProps) => {
 	const [mode, setMode] = useState<Mode>("login");
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -68,6 +69,14 @@ const AuthModal = ({ show, onHide }: AuthModalProps) => {
 	});
 
 	const isBusy = signInMutation.isPending || signUpMutation.isPending;
+
+	useEffect(() => {
+		if (!show) return;
+		if (!initialMode) return;
+
+		setErrorMessage(null);
+		setMode(initialMode);
+	}, [show, initialMode]);
 
 	const title = useMemo(() => {
 		return mode === "login" ? "Log in" : "Create account";
