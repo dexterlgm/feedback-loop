@@ -37,8 +37,10 @@ const PostPage = () => {
 	const { data: postDetail, isLoading, error } = usePostDetail(id);
 	const { user, profile: currentProfile } = useAuth();
 
-	const { data: comments, isLoading: commentsLoading } =
-		useCommentsForPost(id);
+	const { data: comments, isLoading: commentsLoading } = useCommentsForPost(
+		id,
+		user?.id
+	);
 
 	const createCommentMutation = useCreateCommentMutation(id ?? "");
 	const deleteCommentMutation = useDeleteCommentMutation(id ?? "");

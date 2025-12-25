@@ -137,16 +137,9 @@ export async function setCommentReaction(
 
 // Fetch comments for a post
 export async function fetchCommentsForPost(
-	postId: string
+	postId: string,
+	currentUserId: string | undefined
 ): Promise<CommentWithMeta[]> {
-	const {
-		data: { user },
-		error: userError,
-	} = await supabase.auth.getUser();
-	if (userError) throw userError;
-
-	const currentUserId: string | null = user?.id ?? null;
-
 	const { data, error } = await supabase
 		.from("comments")
 		.select(

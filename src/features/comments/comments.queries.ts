@@ -10,11 +10,14 @@ import {
 	type SetCommentReactionParams,
 } from "./comments.api";
 
-export function useCommentsForPost(postId: string | undefined) {
+export function useCommentsForPost(
+	postId: string | undefined,
+	userId: string | undefined
+) {
 	return useQuery<CommentWithMeta[]>({
 		queryKey: ["commentsForPost", postId],
 		enabled: !!postId,
-		queryFn: () => fetchCommentsForPost(postId!),
+		queryFn: () => fetchCommentsForPost(postId!, userId),
 	});
 }
 
