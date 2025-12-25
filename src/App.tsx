@@ -12,9 +12,8 @@ import { useAuth } from "./hooks/useAuth";
 import { useEffect, useState } from "react";
 import WelcomeModal from "./components/WelcomeModal";
 import AuthModal, { type Mode } from "./components/AuthModal";
+import { checkWelcomeModal, setWelcomeModalShown } from "./utils/welcomeModal";
 
-const WELCOME_LAST_SHOWN_KEY = "welcome_modal_last_shown_at";
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const AUTH_GRACE_MS = 10 * 1000;
 
 function App() {
@@ -22,8 +21,8 @@ function App() {
 
 	const { user } = useAuth();
 
-	const [showWelcome, setShowWelcome] = useState<boolean>(false);
-	const [showAuth, setShowAuth] = useState<boolean>(false);
+	const [showWelcome, setShowWelcome] = useState(false);
+	const [showAuth, setShowAuth] = useState(false);
 	const [authInitialMode, setAuthInitialMode] = useState<Mode>("login");
 
 	useEffect(() => {
@@ -33,21 +32,9 @@ function App() {
 		}
 
 		const timer = window.setTimeout(() => {
-			const raw = localStorage.getItem(WELCOME_LAST_SHOWN_KEY);
-
-			const lastShown = raw ? Number(raw) : 0;
-
-			const lastShownOk = lastShown > 0;
-
-			const isWithinCooldown =
-				lastShownOk && Date.now() - lastShown < ONE_DAY_MS;
-
-			if (!isWithinCooldown) {
+			if (checkWelcomeModal()) {
 				setShowWelcome(true);
-				localStorage.setItem(
-					WELCOME_LAST_SHOWN_KEY,
-					String(Date.now())
-				);
+				setWelcomeModalShown();
 			}
 		}, AUTH_GRACE_MS);
 
