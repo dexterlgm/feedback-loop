@@ -71,11 +71,14 @@ const AuthModal = ({ show, onHide, initialMode }: AuthModalProps) => {
 	const isBusy = signInMutation.isPending || signUpMutation.isPending;
 
 	useEffect(() => {
-		if (!show) return;
-		if (!initialMode) return;
+		if (!show || !initialMode) return;
 
-		setErrorMessage(null);
-		setMode(initialMode);
+		const id = setTimeout(() => {
+			setErrorMessage(null);
+			setMode(initialMode);
+		}, 0);
+
+		return () => clearTimeout(id);
 	}, [show, initialMode]);
 
 	const title = useMemo(() => {

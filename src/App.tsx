@@ -26,10 +26,7 @@ function App() {
 	const [authInitialMode, setAuthInitialMode] = useState<Mode>("login");
 
 	useEffect(() => {
-		if (user) {
-			setShowWelcome(false);
-			return;
-		}
+		if (user) return;
 
 		const timer = window.setTimeout(() => {
 			if (checkWelcomeModal()) {
@@ -38,9 +35,7 @@ function App() {
 			}
 		}, AUTH_GRACE_MS);
 
-		return () => {
-			window.clearTimeout(timer);
-		};
+		return () => window.clearTimeout(timer);
 	}, [user]);
 
 	const openAuth = (mode: Mode) => {

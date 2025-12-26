@@ -323,7 +323,7 @@ export async function fetchPostsByUser(
 	limit: number,
 	offset: number
 ): Promise<PostFeedItem[]> {
-	let query = supabase
+	const query = supabase
 		.from("posts")
 		.select(
 			`
