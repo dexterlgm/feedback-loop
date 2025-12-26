@@ -1,3 +1,6 @@
+@import "bootstrap/scss/bootstrap";
+@import "./bootstrap-overrides.scss";
+
 body {
 	margin: 0;
 	padding: 0;
@@ -20,8 +23,8 @@ body {
 
 .notif-badge {
 	position: absolute;
-	top: -9;
-	right: 10px;
+	top: -4px;
+	right: 0;
 
 	min-width: 18px;
 	min-height: 18px;
@@ -35,4 +38,27 @@ body {
 
 	padding: 0;
 	pointer-events: none;
+}
+
+.btn .badge {
+	position: absolute;
+	top: -4px;
+}
+
+.navbar {
+	border-style: solid;
+	border-top: 0;
+	border-left: 0;
+	border-right: 0;
+	border-width: 1px;
+	border-color: #595c6d;
+}
+
+.footer {
+	border-style: solid;
+	border-bottom: 0;
+	border-left: 0;
+	border-right: 0;
+	border-width: 1px;
+	border-color: #595c6d;
 }
