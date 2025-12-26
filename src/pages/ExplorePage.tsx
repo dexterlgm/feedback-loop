@@ -53,7 +53,8 @@ const ExplorePage = () => {
 	} = usePostsFeed(filter, limit, 0);
 
 	return (
-		<Container className="py-4">
+		<Container className="pb-4 pt-1">
+			<h2>Browse posts</h2>
 			<div className="d-flex flex-column gap-3 mb-3">
 				<div className="d-flex align-items-center gap-2">
 					<Button

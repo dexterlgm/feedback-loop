@@ -250,7 +250,14 @@ const SocialLinks = ({ links }: SocialLinksProps) => {
 						<span className="text-muted me-1">
 							{item.platform === "other" ? "" : `${item.label}: `}
 						</span>
-						<span>{item.displayText}</span>
+						<span
+							style={{
+								whiteSpace: "pre-wrap",
+								wordBreak: "break-all",
+							}}
+						>
+							{item.displayText}
+						</span>
 					</a>
 				))}
 			</div>

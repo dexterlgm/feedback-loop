@@ -1,18 +1,26 @@
+import { Button } from "react-bootstrap";
 import type { Medal, Profile } from "../types";
 import { groupMedals } from "../utils/medals";
 import { MedalIcon } from "./common/MedalIcon";
 import { UserAvatar } from "./common/UserAvatar";
 import SocialLinks from "./SocialLinks";
+import { Link } from "react-router-dom";
 
 interface ProfileInfoProps {
 	profile: Profile;
 	medals: Medal[];
 	socialLinks: string[];
+	canEdit: boolean | null | undefined;
 }
 
-const ProfileInfo = ({ profile, medals, socialLinks }: ProfileInfoProps) => {
+const ProfileInfo = ({
+	profile,
+	medals,
+	socialLinks,
+	canEdit,
+}: ProfileInfoProps) => {
 	return (
-		<div className="p-3 border rounded">
+		<div className="p-3 border rounded sticky-top">
 			<div className="d-flex align-items-center mb-3">
 				<UserAvatar
 					src={profile.avatar_url}
@@ -46,6 +54,17 @@ const ProfileInfo = ({ profile, medals, socialLinks }: ProfileInfoProps) => {
 
 			{profile.bio && <p className="mt-3">{profile.bio}</p>}
 			<SocialLinks links={socialLinks} />
+			{canEdit && (
+				<Button
+					as={Link as any}
+					to={`/u/${profile.handle}/edit`}
+					variant="outline-secondary"
+					size="sm"
+					className="mt-3"
+				>
+					Edit profile
+				</Button>
+			)}
 		</div>
 	);
 };

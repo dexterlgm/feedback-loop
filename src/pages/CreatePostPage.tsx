@@ -190,14 +190,14 @@ const CreatePostPage = () => {
 						{...register("body", {
 							required: "A description is required",
 							maxLength: {
-								value: 200,
+								value: 500,
 								message:
-									"Description cannot exceed 200 characters",
+									"Description cannot exceed 500 characters",
 							},
 						})}
 					/>
 					<div className="text-muted small mt-1">
-						{watch("body")?.length ?? 0}/200 characters
+						{watch("body")?.length ?? 0}/500 characters
 					</div>
 
 					<Form.Control.Feedback type="invalid">

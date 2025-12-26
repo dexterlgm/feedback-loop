@@ -4,7 +4,7 @@ const AppFooter = () => {
 	return (
 		<Container
 			fluid
-			className="w-auto p-0 m-0 py-1 mt-2 d-flex justify-content-center align-items-center bg-secondary mx-0"
+			className="w-auto p-0 m-0 py-2 mt-2 d-flex justify-content-center align-items-center mx-0 footer"
 		>
 			<p className="m-0 p-2 text-center">© Feedback-Loop</p>
 		</Container>

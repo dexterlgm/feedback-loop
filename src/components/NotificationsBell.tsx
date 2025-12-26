@@ -83,7 +83,10 @@ const NotificationsBell = () => {
 				</span>
 			</Dropdown.Toggle>
 
-			<Dropdown.Menu style={{ width: 360, maxWidth: "90vw" }}>
+			<Dropdown.Menu
+				style={{ width: 360, maxWidth: "90vw" }}
+				className="position-absolute"
+			>
 				<div className="px-3 py-2 d-flex align-items-center justify-content-between">
 					<strong>Notifications</strong>
 

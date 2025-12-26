@@ -27,8 +27,11 @@ export function AppNavbar() {
 		<>
 			<Navbar expand="lg" className="mb-3">
 				<Container>
-					<Navbar.Brand as={Link} to="/">
-						FB-Loop
+					<Navbar.Brand as={Link} to="/" aria-label="Feedback Loop">
+						<span style={{ fontSize: "1.2em" }}>
+							Feedback L
+							<span style={{ fontSize: "1.5rem" }}>∞</span>p
+						</span>
 					</Navbar.Brand>
 
 					<Nav className="ms-auto d-flex flex-row align-items-center gap-2">
@@ -67,7 +70,7 @@ export function AppNavbar() {
 										/>
 									</Dropdown.Toggle>
 
-									<Dropdown.Menu>
+									<Dropdown.Menu className="position-absolute">
 										<Dropdown.Item
 											as={Link}
 											to={

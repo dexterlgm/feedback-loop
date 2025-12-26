@@ -47,7 +47,7 @@ const PostCard = ({ item, variant = "list" }: PostCardProps) => {
 				</Link>
 			)}
 
-			<Card.Body className="d-flex flex-column">
+			<Card.Body className="d-flex flex-column pt-3">
 				{item.tags.length > 0 && (
 					<div className="d-flex flex-wrap gap-1 mb-2">
 						{item.tags.map((tag) => (
@@ -67,16 +67,32 @@ const PostCard = ({ item, variant = "list" }: PostCardProps) => {
 				)}
 
 				<div className="d-flex align-items-center gap-2 mb-2">
-					<UserAvatar
-						src={item.author.avatar_url}
-						alt={item.author.handle}
-						size={28}
-					/>
+					<Link
+						to={`/u/${item.author.handle}`}
+						className="text-decoration-none"
+					>
+						<UserAvatar
+							src={item.author.avatar_url}
+							alt={item.author.handle}
+							size={28}
+						/>
+					</Link>
 					<div className="d-flex flex-column lh-sm">
-						<strong className="text-truncate">{name}</strong>
-						<small className="text-muted">
-							@{item.author.handle}
-						</small>
+						<Link
+							to={`/u/${item.author.handle}`}
+							className="text-decoration-none"
+						>
+							{" "}
+							<strong className="text-truncate">{name}</strong>
+						</Link>
+						<Link
+							to={`/u/${item.author.handle}`}
+							className="text-decoration-none"
+						>
+							<small className="text-muted">
+								@{item.author.handle}
+							</small>
+						</Link>
 					</div>
 					<div className="ms-auto text-muted small">
 						{timeAgo(item.post.created_at)}

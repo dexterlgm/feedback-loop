@@ -143,7 +143,7 @@ const EditProfilePage = () => {
 	};
 
 	return (
-		<Container className="py-4">
+		<Container className="pb-4 pt1">
 			<h2 className="mb-3">Edit profile</h2>
 			<p className="text-muted mb-4">@{profile.handle}</p>
 
@@ -252,9 +252,7 @@ const EditProfilePage = () => {
 				</Form.Group>
 
 				<Form.Group className="mb-3">
-					<Form.Label>
-						Social links (up to {MAX_SOCIAL_LINKS})
-					</Form.Label>
+					<Form.Label>Social links</Form.Label>
 
 					{Array.from({ length: MAX_SOCIAL_LINKS }).map(
 						(_, index) => (

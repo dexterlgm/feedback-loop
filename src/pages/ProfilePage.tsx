@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
 	useProfileByHandle,
 	useMedalsForUser,
@@ -39,19 +39,8 @@ const ProfilePage = () => {
 							profile={profile}
 							medals={medals ?? []}
 							socialLinks={profile.social_links ?? []}
+							canEdit={canEdit}
 						/>
-						{canEdit && (
-							<div className="mt-2">
-								<Button
-									as={Link as any}
-									to={`/u/${profile.handle}/edit`}
-									variant="outline-secondary"
-									size="sm"
-								>
-									Edit profile
-								</Button>
-							</div>
-						)}
 					</div>
 
 					<div className="row">
@@ -81,19 +70,8 @@ const ProfilePage = () => {
 								profile={profile}
 								medals={medals ?? []}
 								socialLinks={profile.social_links ?? []}
+								canEdit={canEdit}
 							/>
-							{canEdit && (
-								<div className="mt-2">
-									<Button
-										as={Link as any}
-										to={`/u/${profile.handle}/edit`}
-										variant="outline-secondary"
-										size="sm"
-									>
-										Edit profile
-									</Button>
-								</div>
-							)}
 						</div>
 
 						{posts && posts.length >= limit && (

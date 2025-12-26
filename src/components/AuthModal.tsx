@@ -160,6 +160,7 @@ const AuthModal = ({ show, onHide, initialMode }: AuthModalProps) => {
 							<Form.Label>Email</Form.Label>
 							<Form.Control
 								type="email"
+								placeholder="you@example.com"
 								autoComplete="email"
 								disabled={isBusy}
 								{...registerLogin("email", {
@@ -176,6 +177,7 @@ const AuthModal = ({ show, onHide, initialMode }: AuthModalProps) => {
 							<Form.Label>Password</Form.Label>
 							<Form.Control
 								type="password"
+								placeholder="********"
 								autoComplete="current-password"
 								disabled={isBusy}
 								{...registerLogin("password", {
@@ -212,6 +214,7 @@ const AuthModal = ({ show, onHide, initialMode }: AuthModalProps) => {
 							<Form.Label>Email</Form.Label>
 							<Form.Control
 								type="email"
+								placeholder="you@example.com"
 								autoComplete="email"
 								disabled={isBusy}
 								{...registerSignup("email", {
@@ -228,6 +231,7 @@ const AuthModal = ({ show, onHide, initialMode }: AuthModalProps) => {
 							<Form.Label>Handle (cannot be changed)</Form.Label>
 							<Form.Control
 								disabled={isBusy}
+								placeholder="coolartist123"
 								{...registerSignup("handle", {
 									required: "Handle is required",
 									minLength: {
@@ -260,6 +264,7 @@ const AuthModal = ({ show, onHide, initialMode }: AuthModalProps) => {
 						<Form.Group className="mb-3">
 							<Form.Label>Display name</Form.Label>
 							<Form.Control
+								placeholder="Cool Artist 123"
 								disabled={isBusy}
 								{...registerSignup("displayName", {
 									required: "Display name is required",
@@ -285,6 +290,7 @@ const AuthModal = ({ show, onHide, initialMode }: AuthModalProps) => {
 							<Form.Label>Password</Form.Label>
 							<Form.Control
 								type="password"
+								placeholder="********"
 								autoComplete="new-password"
 								disabled={isBusy}
 								{...registerSignup("password", {

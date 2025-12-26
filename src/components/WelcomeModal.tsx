@@ -30,7 +30,7 @@ const WelcomeModal = ({ show, onClose, onOpenAuth }: WelcomeModalProps) => {
 
 			<Modal.Body>
 				<Row className="g-3">
-					<p>
+					<p className="mb-1 mt-3">
 						Create an account to join the conversation, or browse
 						posts without signing up.
 					</p>
