@@ -70,7 +70,7 @@ export function AppNavbar() {
 										/>
 									</Dropdown.Toggle>
 
-									<Dropdown.Menu className="position-absolute">
+									<Dropdown.Menu className="position-absolute user-dropdown">
 										<Dropdown.Item
 											as={Link}
 											to={
