@@ -5,7 +5,7 @@ import {
 } from "../features/profiles/profiles.queries";
 import { useAuth } from "../hooks/useAuth";
 import { Button } from "react-bootstrap";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePostsByUser } from "../features/posts/posts.queries";
 import PostCard from "../components/PostCard";
 import ProfileInfo from "../components/ProfileInfo";
@@ -15,6 +15,10 @@ const ProfilePage = () => {
 	const { data: profile } = useProfileByHandle(handle);
 	const { data: medals } = useMedalsForUser(profile?.id);
 	const { user, profile: currentProfile } = useAuth();
+
+	useEffect(() => {
+		document.title = `${handle}'s profile`;
+	});
 
 	const PAGE_SIZE = 12;
 	const [limit, setLimit] = useState(PAGE_SIZE);

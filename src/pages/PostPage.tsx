@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
 	Container,
@@ -36,6 +36,14 @@ const PostPage = () => {
 
 	const { data: postDetail, isLoading, error } = usePostDetail(id);
 	const { user, profile: currentProfile } = useAuth();
+
+	useEffect(() => {
+		if (postDetail?.post.title) {
+			document.title = `Feedback Loop - ${postDetail?.post.title}`;
+		} else if (!isLoading) {
+			document.title = `Post not found`;
+		}
+	});
 
 	const { data: comments, isLoading: commentsLoading } = useCommentsForPost(
 		id,

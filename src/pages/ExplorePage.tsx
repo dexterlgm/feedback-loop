@@ -31,6 +31,10 @@ const ExplorePage = () => {
 	const allTags: Tag[] = tagsData ?? [];
 
 	useEffect(() => {
+		document.title = `Feedback Loop - Explore`;
+	});
+
+	useEffect(() => {
 		saveTags(selectedTags);
 	}, [selectedTags]);
 

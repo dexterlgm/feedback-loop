@@ -39,6 +39,10 @@ const EditProfilePage = () => {
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const [avatarError, setAvatarError] = useState<string | null>(null);
 
+	useEffect(() => {
+		document.title = `Feedback Loop - Edit profile`;
+	});
+
 	const {
 		register,
 		handleSubmit,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Form, Button, Row, Col, Alert } from "react-bootstrap";
 import { useForm } from "react-hook-form";
@@ -37,6 +37,10 @@ const CreatePostPage = () => {
 	const { user } = useAuth();
 	const createPost = useCreatePostMutation();
 	const { data: tags, isLoading: tagsLoading, error: tagsError } = useTags();
+
+	useEffect(() => {
+		document.title = `Feedback Loop - Create post`;
+	});
 
 	const {
 		register,
